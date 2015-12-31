@@ -126,10 +126,12 @@ NYPD and subsequently entered into the Department's record management system).  
     </div><!-- /.container -->
 
     <script type="text/SQL" id="sql_template">
-      WITH q AS (SELECT cartodb_id, the_geom_webmercator FROM chriswhong.cpnv),
+WITH q AS (SELECT cartodb_id, the_geom_webmercator FROM chriswhong.cpnv 
+           --WHERE offense = 'RAPE'
+          ),
            m AS (SELECT count(*) n, array_agg(cartodb_id) id_list, the_geom_webmercator, ST_Y(the_geom_webmercator) y FROM q GROUP BY the_geom_webmercator ORDER BY y DESC) ,
            f AS (SELECT  n, generate_series(1, array_length(id_list,1)) p, unnest(id_list) cartodb_id, the_geom_webmercator FROM m)
-           SELECT  ST_SetSRID(ST_MakePoint(ST_X(f.the_geom_webmercator) , ST_Y(f.the_geom_webmercator) + f.p*{{yOffset}}),3857) the_geom_webmercator, f.cartodb_id, t.offense FROM f, chriswhong.cpnv t WHERE f.cartodb_id = t.cartodb_id 
+           SELECT  ST_SetSRID(ST_MakePoint(ST_X(f.the_geom_webmercator) , ST_Y(f.the_geom_webmercator) + f.p*{{yOffset}}),3857) the_geom_webmercator, f.cartodb_id, t.offense, to_char(t.occurrence_date,'DD Mon YYYY') date FROM f, chriswhong.cpnv t WHERE f.cartodb_id = t.cartodb_id 
     </script>
    
 
@@ -186,7 +188,6 @@ NYPD and subsequently entered into the Department's record management system).  
       for(var i=0;i<zoom;i++) {
         yOffset = yOffset/2;
       }
-
 
       return yOffset;
     }
