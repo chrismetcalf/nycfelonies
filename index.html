@@ -9,7 +9,7 @@
     <meta name="author" content="">
     <link rel="icon" href="./favicon.ico">
 
-    <title>CartoDB Bootstrap Starter Template</title>
+    <title>NYC Felonies Map</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="http://libs.cartocdn.com/cartodb.js/v3/3.15/themes/css/cartodb.css" />
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
@@ -38,7 +38,7 @@
       width: 300px;
       height: 100%;
       max-width: 100%;
-      float: left;
+      float: right;
       -webkit-transition: all 0.25s ease-out;
       -moz-transition: all 0.25s ease-out;
       transition: all 0.25s ease-out;
@@ -68,17 +68,17 @@
             <a href="#" class="navbar-icon pull-right visible-xs" id="nav-btn"><i class="fa fa-bars fa-lg white"></i></a>
             <a href="#" class="navbar-icon pull-right visible-xs" id="sidebar-toggle-btn"><i class="fa fa-search fa-lg white"></i></a>
           </div>
-          <a class="navbar-brand" href="#">CartoDB Template</a>
+          <a class="navbar-brand" href="#">NYC Felonies Map</a>
         </div>
         <div class="navbar-collapse collapse">
-          <form class="navbar-form navbar-right" role="search">
+          <!-- <form class="navbar-form navbar-right" role="search">
             <div class="form-group has-feedback">
                 <span class="twitter-typeahead" style="position: static; display: block; direction: ltr;"><input id="searchbox" type="text" placeholder="Search" class="form-control tt-input" autocomplete="off" spellcheck="false" dir="auto" style="position: relative; vertical-align: top;"><pre aria-hidden="true" style="position: absolute; visibility: hidden; white-space: pre; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 14px; font-style: normal; font-variant: normal; font-weight: 400; word-spacing: 0px; letter-spacing: 0px; text-indent: 0px; text-rendering: auto; text-transform: none;"></pre><span class="tt-dropdown-menu" style="position: absolute; top: 100%; left: 0px; z-index: 100; display: none; right: auto;"><div class="tt-dataset-Boroughs"></div><div class="tt-dataset-Theaters"></div><div class="tt-dataset-Museums"></div><div class="tt-dataset-GeoNames"></div></span></span>
                 <span id="searchicon" class="fa fa-search form-control-feedback"></span>
             </div>
-          </form>
+          </form> -->
           <ul class="nav navbar-nav">
-            <li><a href="#" data-toggle="collapse" data-target=".navbar-collapse.in" id="about-btn"><i class="fa fa-question-circle white"></i>&nbsp;&nbsp;About</a></li>
+            <!-- <li><a href="#" data-toggle="collapse" data-target=".navbar-collapse.in" id="about-btn"><i class="fa fa-question-circle white"></i>&nbsp;&nbsp;About</a></li>
             <li class="dropdown">
               <a id="toolsDrop" href="#" role="button" class="dropdown-toggle" data-toggle="dropdown" aria-expanded="false"><i class="fa fa-globe white"></i>&nbsp;&nbsp;Tools <b class="caret"></b></a>
               <ul class="dropdown-menu">
@@ -97,7 +97,7 @@
                   <li><a href="data/DOITT_MUSEUM_01_13SEPT2010.geojson" download="museums.geojson" target="_blank" data-toggle="collapse" data-target=".navbar-collapse.in"><i class="fa fa-download"></i>&nbsp;&nbsp;Museums</a></li>
                 </ul>
             </li>
-            <li class="hidden-xs"><a href="#" data-toggle="collapse" data-target=".navbar-collapse.in" id="list-btn"><i class="fa fa-list white"></i>&nbsp;&nbsp;POI List</a></li>
+            <li class="hidden-xs"><a href="#" data-toggle="collapse" data-target=".navbar-collapse.in" id="list-btn"><i class="fa fa-list white"></i>&nbsp;&nbsp;POI List</a></li> -->
           </ul>
         </div><!--/.navbar-collapse -->
       </div>
@@ -105,36 +105,91 @@
 
     <div id="container">
       <div id="sidebar">
-        
+        <div class="col-md-12">
+          <h3>About</h3>
+          <p>This map shows NYPD Crime Data for the Seven Major Felonies.  The data have "Compstat Dates" from January 2015 thru September 2015. (Compstat date is the date the incident was reported to the
+NYPD and subsequently entered into the Department's record management system).  <a href="https://data.cityofnewyork.us/api/views/hyij-8hr7/files/c0fd6ac0-20ee-4cd8-ad94-b30d96a0d158?download=true&filename=NYPDIncidentLevelDataFootnotes.pdf">Read the data footnotes here.</a></p>
+
+          <p>Since the point location of each incident has been modified to the midpoint of the street segment it occurred on, mapping simple point markers would have resulted in many overlapping points on segments with multiple incidents.  The technique used to render this map "stacks" the markers for a given segment, allowing you to see multiple incidents.  Hover over a marker to see the occurrance date and type of felony. </p>
+
+
+          <p>Data was pulled from the <a href="https://data.cityofnewyork.us/Public-Safety/NYPD-7-Major-Felony-Incidents/hyij-8hr7#column-menu">NYC Open Data Portal</a> on 30 December 2015.</p>
+
+          <p>Map by <a href="https://twitter.com/chris_whong">@chris_whong</a>. Code on <a href="https://github.com/chriswhong/nycfelonies">Github</a>. Powered by <a href="https://cartodb.com">CartoDB</a></p>
+
+          <p><a href="https://team.cartodb.com/u/chriswhong/tables/cpnv/public">Download this data as an SHP, geoJSON, KML, or CSV</a></p>
+        </div>
       </div>
       <div id="map">
       </div>
 
     </div><!-- /.container -->
 
+    <script type="text/SQL" id="sql_template">
+      WITH q AS (SELECT cartodb_id, the_geom_webmercator FROM chriswhong.cpnv),
+           m AS (SELECT count(*) n, array_agg(cartodb_id) id_list, the_geom_webmercator, ST_Y(the_geom_webmercator) y FROM q GROUP BY the_geom_webmercator ORDER BY y DESC) ,
+           f AS (SELECT  n, generate_series(1, array_length(id_list,1)) p, unnest(id_list) cartodb_id, the_geom_webmercator FROM m)
+           SELECT  ST_SetSRID(ST_MakePoint(ST_X(f.the_geom_webmercator) , ST_Y(f.the_geom_webmercator) + f.p*{{yOffset}}),3857) the_geom_webmercator, f.cartodb_id, t.offense FROM f, chriswhong.cpnv t WHERE f.cartodb_id = t.cartodb_id 
+    </script>
+   
+
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
     <script src="http://libs.cartocdn.com/cartodb.js/v3/3.15/cartodb.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
     <script>
+    var mainLayer;
 
     var map = new L.Map('map', { 
-      center: [40.1,-100.3],
-      zoom: 4
+      center: [40.705075,-73.990431],
+      zoom: 14
     });
 
     L.tileLayer('http://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',{
       attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'
     }).addTo(map);
 
-    var layerUrl = 'http://documentation.cartodb.com/api/v2/viz/236085de-ea08-11e2-958c-5404a6a683d5/viz.json';
+    var layerUrl = 'https://team.cartodb.com/u/chriswhong/api/v2/viz/66093444-af68-11e5-a53a-0e674067d321/viz.json';
 
     cartodb.createLayer(map, layerUrl)
       .addTo(map)
       .on('done', function(layer) {
-
+        mainLayer = layer.getSubLayer(0);
+        layer
+          .on('featureOver', function(e, latlng, pos, data) {
+            $('#map').css('cursor','pointer');
+          })
+          .on('featureOut', function(e, latlng, pos, data) {
+          $('#map').css('cursor','-webkit-grab');
+        })
       }).on('error', function() {
         //log the error
       });
+
+
+    map.on('zoomend', updateLayer)
+
+    function updateLayer() {
+      var zoom = map.getZoom();
+      console.log(zoom);
+
+      var SQL = Mustache.render($('#sql_template').text(),{
+        yOffset: getYOffset(zoom)
+      });
+
+      console.log(SQL);
+      mainLayer.setSQL(SQL);
+    }
+
+    function getYOffset(zoom) {
+      var yOffset = 491520;
+
+      for(var i=0;i<zoom;i++) {
+        yOffset = yOffset/2;
+      }
+
+
+      return yOffset;
+    }
 
     </script>
   </body>
